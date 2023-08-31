@@ -20,7 +20,7 @@ return new class extends Migration
             $table->tinyInteger('score_format')->default(0)->comment('0: 11, 1: 15, 2:21');
             $table->tinyInteger('tournament_format')->default(0)->comment('0: round_robin');
             $table->integer('player_limit')->unsigned()->nullable(false);
-            $table->integer('average_game_time')->unsigned()->nullable(false);
+            $table->integer('average_game_time')->unsigned()->default(0)->comment('0: 15, 1: 20, 2:25');
             $table->integer('number_of_courts')->unsigned()->nullable(false);
             $table->timestamps();
         });

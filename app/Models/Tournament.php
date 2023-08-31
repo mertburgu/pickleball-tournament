@@ -28,9 +28,6 @@ class Tournament extends Model
 
     public function createGames(Tournament $tournament)
     {
-        $tournament->createPlayers();
-        $tournament->createCourts();
-
         $players = $tournament->players;
         $numberOfCourts = $tournament->number_of_courts;
         $gamesPerPlayer = $tournament->player_limit - 1;
@@ -55,42 +52,6 @@ class Tournament extends Model
                 ]);
 
                 $game->players()->sync($gamePlayers);
-            }
-        }
-    }
-
-    public function createCourts(Tournament $tournament)
-    {
-        $existingCourtCount = $tournament->courts->count();
-        $requiredCourtCount = $tournament->number_of_courts;
-
-        if ($existingCourtCount < $requiredCourtCount) {
-            $courtsToCreate = $requiredCourtCount - $existingCourtCount;
-
-            for ($i = 1; $i <= $courtsToCreate; $i++) {
-                Court::create([
-                    'name' => "Court". ($i + $existingCourtCount),
-                    'tournament_id' => $tournament->id
-                ]);
-            }
-        }
-    }
-
-
-    public function createPlayers(Tournament $tournament)
-    {
-        $existingPlayerCount = $tournament->players->count();
-        $requiredPlayerCount = $tournament->player_limit;
-
-        if ($existingPlayerCount < $requiredPlayerCount) {
-            $playersToCreate = $requiredPlayerCount - $existingPlayerCount;
-
-            for ($i = 1; $i <= $playersToCreate; $i++) {
-                Player::create([
-                    'name' => "Player". ($i + $existingPlayerCount),
-                    'tournament_id' => $tournament->id
-                ]);
-
             }
         }
     }
