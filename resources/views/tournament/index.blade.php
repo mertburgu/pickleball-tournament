@@ -8,8 +8,29 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
+@if(session('success'))
+    <div class="alert alert-success">
+        {{ session('success') }}
+    </div>
+@endif
+@if(session('error'))
+    <div class="alert alert-danger">
+        {{ session('error') }}
+    </div>
+@endif
+
+@if($errors->any())
+    <div class="alert alert-danger">
+        <ul>
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
 <div class="container mt-4">
     <h2>Tournament List</h2>
+    <a href="{{ route('tournament.create') }}" class="btn btn-success mb-3 float-end">Create Tournament</a>
     <table class="table">
         <thead>
         <tr>
@@ -20,6 +41,9 @@
             <th>Average Game Time</th>
             <th>Number of Courts</th>
             <th>Player Limit</th>
+            <th>Matches in Progress</th>
+            <th>Completed Matches</th>
+            <th>Remaining Matches</th>
             <th>Actions</th>
         </tr>
         </thead>
@@ -27,20 +51,28 @@
         @foreach($tournaments as $tournament)
             <tr>
                 <td>{{ $tournament->name }}</td>
-                <td>{{ $tournament->game_format }}</td>
-                <td>{{ $tournament->score_format }}</td>
-                <td>{{ $tournament->tournament_format }}</td>
-                <td>{{ $tournament->average_game_time }}</td>
+                <td>{{ config('tournament.gameOptions.' . $tournament->game_format, 'Unknown') }}</td>
+                <td>{{ config('tournament.scoreOptions.' . $tournament->score_format, 'Unknown') }}</td>
+                <td>{{ config('tournament.typeOptions.' . $tournament->tournament_format, 'Unknown') }}</td>
+                <td>{{ config('tournament.timeOptions.' . $tournament->average_game_time, 'Unknown') }}</td>
                 <td>{{ $tournament->number_of_courts }}</td>
                 <td>{{ $tournament->player_limit }}</td>
+                <td>{{ $tournament->matchesInProgress }}</td>
+                <td>{{ $tournament->completedMatches }}</td>
+                <td>{{ $tournament->remainingMatches }}</td>
                 <td>
                     <a href="{{ route('tournament.show', $tournament->id) }}" class="btn btn-primary btn-sm">Detail</a>
-                    <a href="{{ route('tournament.edit', $tournament->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                    <form action="{{ route('tournament.destroy', $tournament->id) }}" method="POST" style="display: inline-block;">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">Delete</button>
-                    </form>
+                    @if (!$tournament->started)
+                        <a href="{{ route('tournament.edit', $tournament->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                        <form action="{{ route('tournament.destroy', $tournament->id) }}" method="POST" style="display: inline-block;">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">Delete</button>
+                        </form>
+                    @else
+                        <button class="btn btn-warning btn-sm" disabled>Edit</button>
+                        <button class="btn btn-danger btn-sm" disabled>Delete</button>
+                    @endif
                 </td>
             </tr>
         @endforeach

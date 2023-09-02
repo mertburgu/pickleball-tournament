@@ -17,6 +17,9 @@ return new class extends Migration
             $table->id();
             $table->string('name')->nullable(false);
             $table->unsignedBigInteger('tournament_id');
+            $table->integer('order')->nullable(false);
+            $table->unsignedBigInteger('team_id')->nullable();
+            $table->foreign('team_id')->references('id')->on('teams');
             $table->timestamps();
             $table->foreign('tournament_id')->references('id')->on('tournaments')->onDelete('cascade');
         });

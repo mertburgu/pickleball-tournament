@@ -11,11 +11,11 @@ class Court extends Model
 
     public function tournament()
     {
-        return $this->belongsTo(Tournament::class);
+        return $this->belongsTo(Tournament::class, 'id');
     }
 
     public function games()
     {
-        return $this->hasMany(Game::class);
+        return $this->hasMany(Game::class, 'court_id', 'id');
     }
 }

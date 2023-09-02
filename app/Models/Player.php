@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Player extends Model
 {
-    protected $fillable = ['name', 'tournament_id'];
+    protected $fillable = ['name', 'tournament_id', 'order', 'team_id'];
 
     public function games()
     {
@@ -16,6 +16,6 @@ class Player extends Model
 
     public function results()
     {
-        return $this->hasMany(PlayerResult::class);
+        return $this->hasMany(PlayerResult::class, 'player_id', 'id');
     }
 }

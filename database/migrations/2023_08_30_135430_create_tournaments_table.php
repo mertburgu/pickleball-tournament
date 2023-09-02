@@ -22,6 +22,7 @@ return new class extends Migration
             $table->integer('player_limit')->unsigned()->nullable(false);
             $table->integer('average_game_time')->unsigned()->default(0)->comment('0: 15, 1: 20, 2:25');
             $table->integer('number_of_courts')->unsigned()->nullable(false);
+            $table->boolean('started')->default(false);
             $table->timestamps();
         });
     }

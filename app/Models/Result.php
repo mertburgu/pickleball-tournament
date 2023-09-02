@@ -16,6 +16,6 @@ class Result extends Model
 
     public function playerResults()
     {
-        return $this->hasMany(PlayerResult::class);
+        return $this->hasMany(PlayerResult::class, 'result_id', 'id');
     }
 }

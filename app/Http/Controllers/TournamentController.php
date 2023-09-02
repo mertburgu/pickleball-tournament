@@ -3,66 +3,103 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tournament;
-use App\Models\Player;
-use App\Models\Court;
-use App\Models\Game;
+use App\Services\TournamentService;
 use Illuminate\Http\Request;
+use App\Http\Requests\CreateTournamentRequest;
 
 class TournamentController
 {
+    protected $tournamentService;
+
+    public function __construct(TournamentService $tournamentService)
+    {
+        $this->tournamentService = $tournamentService;
+    }
+
     public function index()
     {
-        $tournaments = Tournament::get();
-        return view('tournament.index', ['tournaments' => $tournaments]);
+        $tournaments = $this->tournamentService->getTournamentsWithStats();
+
+        return view('tournament.index', [
+            'tournaments' => $tournaments,
+        ]);
     }
+
+    public function show(Tournament $tournament)
+    {
+        if (!$tournament) {
+            return redirect()->route('tournament.index')->with('error', 'Tournament not found.');
+        }
+
+        return view('tournament.show', ['tournament' => $tournament]);
+    }
+
     public function create()
     {
         return view('tournament.create');
     }
 
-    public function store(Request $request)
+    public function store(CreateTournamentRequest $request, TournamentService $tournamentService)
+    {
+        $data = $request->validated();
+
+        $tournament = $tournamentService->createTournament($data);
+
+        if ($tournament) {
+            return redirect()->route('tournament.index')->with('success', 'Tournament ' . $tournament->name . ' created successfully!');
+        } else {
+            return redirect()->back()->with('error', 'Tournament creation failed. Please check your input and try again.');
+        }
+    }
+    public function edit(Tournament $tournament)
+    {
+        if (!$tournament) {
+            return redirect()->route('tournament.index')->with('error', 'Tournament not found.');
+        }
+
+        return view('tournament.edit', ['tournament' => $tournament]);
+    }
+
+    public function update(Request $request, Tournament $tournament)
     {
         $validator = $request->validate([
             'name' => 'required|string',
-            'game_format' => 'required',
+//            'game_format' => 'required',
             'score_format' => 'required',
             'tournament_format' => 'required',
             'average_game_time' => 'required',
-            'number_of_courts' => 'required',
-            'player_limit' => 'required|integer|player_limit_multiple:' . $request->input('game_format'),
+//            'number_of_courts' => 'required',
+//            'player_limit' => 'required|integer|player_limit_multiple:' . $request->input('game_format'),
         ]);
 
-        $tournament = Tournament::create($validator);
+        if ($tournament->update($validator)) {
+            return redirect()->route('tournament.show', $tournament->id)->with('success', 'Tournament ' . $tournament->name . ' updated successfully!');
+        } else {
+            return redirect()->route('tournament.edit', $tournament->id)->with('error', 'Tournament ' . $tournament->name . ' update failed. Please check your input and try again.');
+        }
+    }
 
-        $existingPlayerCount = $tournament->players->count();
-        $requiredPlayerCount = $tournament->player_limit;
+    public function destroy(Tournament $tournament)
+    {
+        if($tournament->delete()){
+            return redirect()->route('tournament.index')->with('success', 'Tournament '. $tournament->name . ' deleted successfully!');
 
-        if ($existingPlayerCount < $requiredPlayerCount) {
-            $playersToCreate = $requiredPlayerCount - $existingPlayerCount;
+        }
+        return redirect()->route('tournament.index')->with('error', 'Tournament ' . $tournament->name . ' deletion failed. Please try again.');
+    }
 
-            for ($i = 1; $i <= $playersToCreate; $i++) {
-                Player::create([
-                    'name' => "Player". ($i + $existingPlayerCount),
-                    'tournament_id' => $tournament->id
-                ]);
-
-            }
+    public function start(Tournament $tournament)
+    {
+        if (!$tournament) {
+            return redirect()->route('tournament.index')->with('error', 'Tournament not found.');
         }
 
-        $existingCourtCount = $tournament->courts->count();
-        $requiredCourtCount = $tournament->number_of_courts;
-
-        if ($existingCourtCount < $requiredCourtCount) {
-            $courtsToCreate = $requiredCourtCount - $existingCourtCount;
-
-            for ($i = 1; $i <= $courtsToCreate; $i++) {
-                Court::create([
-                    'name' => "Court". ($i + $existingCourtCount),
-                    'tournament_id' => $tournament->id
-                ]);
-            }
+        if ($tournament->started) {
+            return redirect()->route('tournament.show', $tournament->id)->with('error', 'Tournament ' . $tournament->name . '  has already started.');
         }
 
-        return redirect()->route('tournament.index')->with('success', 'Tournament created successfully!');
+        $tournament->update(['started' => true]);
+
+        return redirect()->route('tournament.show', $tournament->id)->with('success', 'Tournament ' . $tournament->name . ' has started.');
     }
 }
