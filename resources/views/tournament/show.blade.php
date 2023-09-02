@@ -45,12 +45,10 @@
     </div>
     @if ($tournament->started)
         <button class="btn btn-success" disabled>Tournament Started</button>
-        <small>The tournament has not started yet.</small>
     @else
         <form action="{{ route('tournament.start', $tournament->id) }}" method="POST">
             @csrf
             <button type="submit" class="btn btn-success">Start Tournament</button>
-            <small>Click the button below to start the tournament.</small>
         </form>
     @endif
     <hr>
