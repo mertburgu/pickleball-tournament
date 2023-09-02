@@ -1,4 +1,4 @@
-# Pickleball Turnuva Yönetim Sistemi
+# Pickleball Turnuva Yönetim Sistemi (geliştiriliyor)
 
 Bu, pickleball turnuvaları oluşturmanıza ve yönetmenize yardımcı olan bir Laravel projesidir. Projemiz hala geliştirme aşamasındadır ve aşağıda proje hakkında daha fazla bilgi ve kullanım talimatları bulabilirsiniz.
 
