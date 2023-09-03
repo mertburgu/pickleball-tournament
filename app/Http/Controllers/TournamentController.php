@@ -89,7 +89,7 @@ class TournamentController
         return redirect()->route('tournament.index')->with('error', 'Tournament ' . $tournament->name . ' deletion failed. Please try again.');
     }
 
-    public function start(Tournament $tournament)
+    public function start(Tournament $tournament, TournamentService $tournamentService)
     {
         if (!$tournament) {
             return redirect()->route('tournament.index')->with('error', 'Tournament not found.');
@@ -99,52 +99,39 @@ class TournamentController
             return redirect()->route('tournament.show', $tournament->id)->with('error', 'Tournament ' . $tournament->name . '  has already started.');
         }
 
+        $tournamentService->createGamesForTournament($tournament);
+
         $tournament->update(['started' => true]);
 
         return redirect()->route('tournament.show', $tournament->id)->with('success', 'Tournament ' . $tournament->name . ' has started.');
     }
 
-    public function getGameList(Tournament $tournament)
-    {
-        if (!$tournament) {
-            return response()->json(['error' => 'Tournament not found'], 404);
-        }
-
-        $games = Game::with('gameTracking')->where('tournament_id', $tournament->id)->get();
-
-        $gameData = [];
-
-        foreach ($games as $game) {
-            $gameStatus = $game->gameTracking->status ?? 'Not Started'; // Varsa gameTracking durumunu kullan, yoksa 'Not Started' varsayılanını kullan
-            $remainingTime = $game->gameTracking->duration_seconds ?? 0; // Varsa gameTracking süresini kullan, yoksa 0 varsayılanını kullan
-
-            $gameData[] = [
-                'id' => $game->id,
-                'status' => $gameStatus,
-                'remaining_time' => $remainingTime,
-            ];
-        }
-
-        return response()->json(['games' => $gameData]);
-    }
-
     public function startGames(Tournament $tournament)
     {
-        $games = Game::whereDoesntHave('gameTracking')->where('tournament_id', $tournament->id)->get();
-        $tournament->update(['started' => true]);
-        foreach ($games as $game) {
-            $averageGameTimeMinutes = $tournament->average_game_time;
-            $randomDurationMinutes = rand(-5, 5);
-            $gameDurationMinutes = $averageGameTimeMinutes + $randomDurationMinutes;
-            $gameDurationSeconds = $gameDurationMinutes * 60;
+        $courts = $tournament->courts;
 
-            $gameTracking = $game->gameTracking()->create([
-                'status' => 'ongoing',
-                'start_time' => now(),
-                'duration_seconds' => $gameDurationSeconds,
-            ]);
+        foreach ($courts as $court) {
+            $game = Game::whereDoesntHave('gameTracking')
+                ->where('tournament_id', $tournament->id)
+                ->first();
+
+            if ($game) {
+                $averageGameTimeMinutes = $tournament->average_game_time;
+                $randomDurationMinutes = rand(-5, 5);
+                $gameDurationMinutes = $averageGameTimeMinutes + $randomDurationMinutes;
+                $gameDurationSeconds = $gameDurationMinutes * 60;
+
+                $game->gameTracking()->create([
+                    'status' => 'ongoing',
+                    'start_time' => now(),
+                    'duration_seconds' => $gameDurationSeconds,
+                ]);
+
+                $game->update([
+                    'court_id' => $court->id,
+                ]);
+            }
         }
-
 
         return redirect()->route('tournament.show', $tournament->id)->with('success', 'Tournament games have started.');
     }

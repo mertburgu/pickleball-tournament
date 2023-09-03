@@ -40,7 +40,7 @@ class TournamentService
 
         $this->createPlayersAndTeams($tournament);
         $this->createCourts($tournament);
-        $this->assignPlayersToGames($tournament);
+//        $this->assignPlayersToGames($tournament);
 
         return $tournament;
     }
@@ -105,47 +105,64 @@ class TournamentService
         }
     }
 
-    private function assignPlayersToGames(Tournament $tournament)
+    public function createGamesForTournament(Tournament $tournament)
     {
-        $tournament->load('courts', 'players', 'teams');
+        $players = $tournament->players->shuffle();
+        $gameFormat = $tournament->game_format;
 
-        foreach ($tournament->courts as $index => $court) {
-            if ($tournament->game_format == 0) {
+        if ($gameFormat == 0) {
+            $gamesPerPlayer = count($players) - 1;
+            $this->createGamesFor1vs1($tournament, $players, $gamesPerPlayer);
+        } elseif ($gameFormat == 1) {
+            $teams = $tournament->teams->shuffle();
+            $gamesPerTeam = count($teams) - 1;
+            $this->createGamesFor2vs2($tournament, $teams, $gamesPerTeam);
+        }
+    }
+
+    private function createGamesFor1vs1(Tournament $tournament, $players, $gamesPerPlayer)
+    {
+        $playerCount = count($players);
+
+        for ($i = 0; $i < $playerCount; $i++) {
+            for ($j = $i + 1; $j < $playerCount; $j++) {
                 $game = Game::create([
                     'tournament_id' => $tournament->id,
-                    'court_id' => $court->id,
+                    'court_id' => null,
                 ]);
 
-                $this->assignPlayersToGame($tournament, $game, 2);
-            } elseif ($tournament->game_format == 1) {
-                $teams = Team::where('tournament_id', $tournament->id)
-                    ->whereHas('players', function ($query) use ($court) {
-                        $query->whereDoesntHave('games');
-                    })
-                    ->inRandomOrder()
-                    ->take(2)
-                    ->get();
-
-                if ($teams->count() == 2) {
-                    $game = Game::create([
-                        'tournament_id' => $tournament->id,
-                        'court_id' => $court->id,
-                    ]);
-                    $this->assignPlayersToGame($tournament, $game, 4);
-                }
+                $this->assignPlayersToGame($tournament, $game, [$players[$i], $players[$j]]);
             }
         }
     }
 
-    private function assignPlayersToGame(Tournament $tournament, Game $game, $playerCount)
+    private function createGamesFor2vs2(Tournament $tournament, $teams, $gamesPerTeam)
     {
-        $playersToAttach = Player::where('tournament_id', $tournament->id)
-            ->whereDoesntHave('games')
-            ->take($playerCount)
-            ->pluck('id')
-            ->toArray();
+        $teamCount = count($teams);
 
-        $game->players()->attach($playersToAttach);
+        for ($i = 0; $i < $teamCount; $i++) {
+            for ($j = $i + 1; $j < $teamCount; $j++) {
+                $game = Game::create([
+                    'tournament_id' => $tournament->id,
+                    'court_id' => null,
+                ]);
+
+                $team1Players = $teams[$i]->players;
+                $team2Players = $teams[$j]->players;
+                $this->assignPlayersToGame($tournament, $game, [$team1Players[0], $team1Players[1], $team2Players[0], $team2Players[1]]);
+            }
+        }
+    }
+
+    private function assignPlayersToGame(Tournament $tournament, Game $game, $players)
+    {
+        $playerIds = [];
+
+        foreach ($players as $player) {
+            $playerIds[] = $player->id;
+        }
+
+        $game->players()->attach($playerIds);
     }
 
     public function getTournamentsWithStats()
@@ -156,18 +173,18 @@ class TournamentService
             $gameIds = Game::where('tournament_id', $tournament->id)->pluck('id');
 
             $gamesInProgress = Game::whereIn('id', $gameIds)
-                ->whereDoesntHave('result')
+                ->whereHas('gameTracking', function ($query) {
+                    $query->where('status', 'ongoing');
+                })
                 ->count();
-
-            $tournament->gamesInProgress = $gamesInProgress;
 
             $completedGames = Game::whereIn('id', $gameIds)
                 ->whereHas('result')
                 ->count();
 
-            $tournament->completedGames = $completedGames;
-
             $totalPlayers = $tournament->players->count();
+            $gamesPerPlayer = 0;
+
             if ($tournament->tournament_format == 0) { // Round Robin
                 if ($tournament->game_format == 0) { // 1vs1
                     $gamesPerPlayer = $totalPlayers - 1;
@@ -175,9 +192,13 @@ class TournamentService
                     $gamesPerPlayer = ($totalPlayers / 2) - 1;
                 }
             }
+
             $totalGames = ($totalPlayers * $gamesPerPlayer) / 2;
             $remainingGames = $totalGames - $completedGames - $gamesInProgress;
-            $tournament->remainingGames = $remainingGames;
+
+            $tournament->gamesInProgress = $gamesInProgress;
+            $tournament->completedGames = $completedGames;
+            $tournament->remainingGames = ($remainingGames < 0) ? 0 : $remainingGames; // Negatif değerleri sıfır yap
         }
 
         return $tournaments;
@@ -225,7 +246,7 @@ class TournamentService
             }
         }
 
-        $this->createAndStartNewGames($game->tournament);
+        $this->createAndStartNewGames($game->tournament, $game);
     }
     private function createPlayerResult(Result $result, Player $player, $score, $status)
     {
@@ -250,55 +271,33 @@ class TournamentService
         return '0-0';
     }
 
-    private function createAndStartNewGames(Tournament $tournament)
+    private function createAndStartNewGames(Tournament $tournament, $game)
     {
-        // Tüm kortları ve oyuncuları yükleyelim
         $tournament->load('courts', 'players', 'teams');
 
-        foreach ($tournament->courts as $court) {
-            $existingGame = Game::where('court_id', $court->id)
-                ->whereHas('gameTracking', function ($query) {
-                    $query->where('status', 'ongoing');
-                })
-                ->first();
+        $newGame = Game::whereDoesntHave('gameTracking')
+            ->where('tournament_id', $tournament->id)
+            ->first();
 
-            if (!$existingGame) {
-                if ($tournament->game_format == 0) {
-                    $game = Game::create([
-                        'tournament_id' => $tournament->id,
-                        'court_id' => $court->id,
-                    ]);
+        if ($newGame) {
+            $averageGameTimeMinutes = $tournament->average_game_time;
+            $randomDurationMinutes = rand(-5, 5);
+            $gameDurationMinutes = $averageGameTimeMinutes + $randomDurationMinutes;
+            $gameDurationSeconds = $gameDurationMinutes * 60;
 
-                    $this->assignPlayersToGame($tournament, $game, 2);
-                } elseif ($tournament->game_format == 1) {
-                    $teams = Team::where('tournament_id', $tournament->id)
-                        ->whereHas('players', function ($query) use ($court) {
-                            $query->whereDoesntHave('games');
-                        })
-                        ->inRandomOrder()
-                        ->take(2)
-                        ->get();
+            $newGame->gameTracking()->create([
+                'status' => 'ongoing',
+                'start_time' => now(),
+                'duration_seconds' => $gameDurationSeconds,
+            ]);
 
-                    if ($teams->count() == 2) {
-                        $game = Game::create([
-                            'tournament_id' => $tournament->id,
-                            'court_id' => $court->id,
-                        ]);
-                        $this->assignPlayersToGame($tournament, $game, 4);
-                    }
-                }
-                $averageGameTimeMinutes = $this->tournament->average_game_time;
-                $randomDurationMinutes = rand(-5, 5);
-                $gameDurationMinutes = $averageGameTimeMinutes + $randomDurationMinutes;
-                $gameDurationSeconds = $gameDurationMinutes * 60;
-
-                $gameTracking = GameTracking::create([
-                    'game_id' => $game->id,
-                    'status' => 'ongoing',
-                    'start_time' => now(),
-                    'duration_seconds' => $gameDurationSeconds,
-                ]);
-            }
+            $newGame->update([
+                'court_id' => $game->court_id,
+            ]);
         }
+
+        $game->update([
+            'court_id' => null,
+        ]);
     }
 }
