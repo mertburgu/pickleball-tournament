@@ -17,8 +17,8 @@ return [
     ],
     'timeOptions' => [
         null=> 'Select an option',
-        '0' => '15 min.',
-        '1' => '20 min.',
-        '2' => '25 min.',
+        '15' => '15 min.',
+        '20' => '20 min.',
+        '25' => '25 min.',
     ]
 ];

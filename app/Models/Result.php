@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Result extends Model
 {
-    protected $fillable = ['game_id', 'score', 'match_duration_seconds'];
+    protected $fillable = ['game_id', 'score', 'game_duration_seconds'];
 
     public function game()
     {

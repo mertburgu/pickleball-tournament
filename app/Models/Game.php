@@ -37,4 +37,9 @@ class Game extends Model
     {
         return $this->hasOne(Result::class, 'game_id', 'id');
     }
+
+    public function gameTracking()
+    {
+        return $this->hasOne(GameTracking::class, 'game_id');
+    }
 }

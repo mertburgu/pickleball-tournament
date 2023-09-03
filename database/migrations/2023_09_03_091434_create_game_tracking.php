@@ -13,12 +13,14 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('results', function (Blueprint $table) {
+        Schema::create('game_tracking', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('game_id');
-            $table->string('score')->nullable(false);
-            $table->unsignedInteger('game_duration_seconds')->nullable(false);
+            $table->unsignedBigInteger('game_id')->unique();
+            $table->enum('status', ['pending', 'ongoing', 'completed'])->default('pending');
+            $table->integer('duration_seconds')->nullable();
+            $table->timestamp('start_time')->nullable();
             $table->timestamps();
+
             $table->foreign('game_id')->references('id')->on('games')->onDelete('cascade');
         });
     }
@@ -30,6 +32,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('results');
+        Schema::dropIfExists('game_tracking');
     }
 };

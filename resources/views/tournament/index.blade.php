@@ -41,9 +41,9 @@
             <th>Average Game Time</th>
             <th>Number of Courts</th>
             <th>Player Limit</th>
-            <th>Matches in Progress</th>
-            <th>Completed Matches</th>
-            <th>Remaining Matches</th>
+            <th>Games in Progress</th>
+            <th>Completed Games</th>
+            <th>Remaining Games</th>
             <th>Actions</th>
         </tr>
         </thead>
@@ -57,9 +57,9 @@
                 <td>{{ config('tournament.timeOptions.' . $tournament->average_game_time, 'Unknown') }}</td>
                 <td>{{ $tournament->number_of_courts }}</td>
                 <td>{{ $tournament->player_limit }}</td>
-                <td>{{ $tournament->matchesInProgress }}</td>
-                <td>{{ $tournament->completedMatches }}</td>
-                <td>{{ $tournament->remainingMatches }}</td>
+                <td>{{ $tournament->gamesInProgress }}</td>
+                <td>{{ $tournament->completedGames }}</td>
+                <td>{{ $tournament->remainingGames }}</td>
                 <td>
                     <a href="{{ route('tournament.show', $tournament->id) }}" class="btn btn-primary btn-sm">Detail</a>
                     @if (!$tournament->started)
