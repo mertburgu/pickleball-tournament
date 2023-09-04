@@ -1,4 +1,4 @@
-# Pickleball Tournament Management System (Under Development)
+# Pickleball Tournament Management System 
 
 This is a Laravel project designed to help you create and manage pickleball tournaments. Our project is still in development, and below you'll find more information about the project and usage instructions.
 
