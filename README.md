@@ -1,6 +1,3 @@
-# job interview task
-
-
 # Pickleball Tournament Management System 
 
 This project was prepared as a task requested due to a job interview. 
