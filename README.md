@@ -1,6 +1,9 @@
+# job interview task
+
+
 # Pickleball Tournament Management System 
 
-This is a Laravel project designed to help you create and manage pickleball tournaments. Our project is still in development, and below you'll find more information about the project and usage instructions.
+This project was prepared as a task requested due to a job interview. 
 
 ## Project Description
 The purpose of this project is to facilitate the process of creating and managing pickleball tournaments. It includes the following features:
